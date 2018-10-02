@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 "delegator.py" = "*"
 docopt = "*"
+logme = "*"
 
 [dev-packages]
 bob-builder = {editable = true, path = "."}
