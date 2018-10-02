@@ -1,4 +1,4 @@
-# bob-the-builder: Builds images, from your code.
+# bob-builder: builds images, from your code.
 
 UNDER DEVELOPMENT
 
