@@ -1,7 +1,7 @@
 """bob-builder: builds things.
 
 Usage:
-  bob-builder <code_path> <image-name>  [--push] [--username=<username> --password=<password>] [--insecure]
+  bob-builder <code_path> <image-name>  [--push] [--username=<username> --password=<password>] [--allow-insecure]
 """
 
 from docopt import docopt
@@ -16,7 +16,7 @@ def main():
     do_push = args["--push"]
     (username, password) = (args["--username"], args["--password"])
 
-    allow_insecure = args["--insecure"]
+    allow_insecure = args["--allow-insecure"]
 
     build = Build(
         image_name=image_name,
