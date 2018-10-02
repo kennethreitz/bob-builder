@@ -13,20 +13,22 @@ class Build:
     def __init__(
         self,
         *,
-        name,
+        image_name,
         codepath,
-        push=False,
+        do_push=False,
+        allow_insecure=False,
         username=None,
         password=None,
         trigger_build=True,
         trigger_push=True,
     ):
         self.uuid = uuid4().hex
-        self.name = name
+        self.image_name = image_name
         self.codepath = Path(codepath)
-        self.push_to = push
+        self.do_push = do_push
         self.username = username
         self.password = password
+        self.allow_insecure = allow_insecure
         self.was_built = None
 
         assert os.path.exists(self.codepath)
@@ -42,21 +44,23 @@ class Build:
         return all([self.username, self.password])
 
     @property
-    def tag(self):
-        if not self.push_to:
-            return f"{self.name}:{self.uuid}"
+    def docker_tag(self):
+        if ":" in self.image_name:
+            return self.image_name
         else:
-            return f"{self.push_to}/{self.name}:{self.uuid}"
+            return f"{self.image_name}:{self.uuid}"
 
     @property
     def has_dockerfile(self):
         return os.path.isfile((self.codepath / "Dockerfile").resolve())
 
     def ensure_docker(self):
+        # Start docker service.
         c = delegator.run("service docker start")
         time.sleep(0.3)
 
         try:
+            # Login to Docker.
             if self.requires_login:
                 c = delegator.run(f"docker login -u {self.username} -p {self.password}")
                 assert c.ok
@@ -70,7 +74,11 @@ class Build:
 
         self.ensure_docker()
 
-        c = delegator.run(f"docker build {self.codepath} --tag {self.tag}")
+        c = delegator.run(
+            f"docker build {self.codepath} --tag {self.docker_tag}", block=False
+        )
+        for line in c.err:
+            print(line)
         self.logger.debug(c.out)
         self.logger.debug(c.err)
         assert c.ok
@@ -91,7 +99,7 @@ class Build:
         assert self.was_built
         assert self.push
 
-        c = delegator.run(f"docker push {self.tag}")
+        c = delegator.run(f"docker push {self.docker_tag}")
         self.logger.debug(c.out)
         self.logger.debug(c.err)
         assert c.ok

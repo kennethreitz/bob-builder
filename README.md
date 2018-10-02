@@ -5,12 +5,12 @@ UNDER DEVELOPMENT
 ## Usage
 
     # Build a Dockerfile-based image.
-    $ bob-builder <path-to-code>
+    $ bob-builder <code-path> <image-name>
     Building with orca-build.
 
-    # Build a Heroku-style repo.
-    $ bob-builder <path-to-code>
+    # Build a Buildpack-style repo.
+    $ bob-builder <code-path> <image-name>
     Building with Heroku-ish.
 
     # Push to registry too.
-    $ bob-builder <path-to-code> --push registry:80
+    $ bob-builder <path-to-code> <image-name> --push
