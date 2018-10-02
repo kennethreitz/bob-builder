@@ -6,7 +6,7 @@ UNDER DEVELOPMENT
 
     # Build a Dockerfile-based image.
     $ bob-builder <code-path> <image-name>
-    Building with orca-build.
+    Building with Docker.
 
     # Build a Buildpack-style repo.
     $ bob-builder <code-path> <image-name>
