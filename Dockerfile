@@ -36,6 +36,6 @@ RUN set -ex && pipenv install --deploy --system
 COPY . /bob
 RUN pip3 install -e .
 
-CMD bob-builder /app
+ENTRYPOINT ["bob-builder", "/app"]
 VOLUME /var/lib/docker
 VOLUME /app
