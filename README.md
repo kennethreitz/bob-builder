@@ -29,6 +29,10 @@ Run a build of your current working directory, using your native docker instance
     $ bob-builder <codepath> <image-name>
     Building with Heroku-ish.
 
+    # Build a Buildpack-style repo with a custom buildpack.
+    $ bob-builder <codepath> <image-name> --buildpack=<buildpack-url>
+    Building with Heroku-ish, with custom buildpack.
+
     # Push to registry too.
     $ bob-builder <path-to-code> <image-name> --push
 
