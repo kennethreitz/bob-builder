@@ -13,7 +13,7 @@ def main():
     args = docopt(__doc__)
     image_name = args["<image-name>"]
     codepath = args["<code_path>"]
-    do_push = args["--push"]
+    trigger_push = args["--push"]
     (username, password) = (args["--username"], args["--password"])
 
     allow_insecure = args["--allow-insecure"]
@@ -21,10 +21,10 @@ def main():
     build = Build(
         image_name=image_name,
         codepath=codepath,
-        do_push=do_push,
         username=username,
         password=password,
         allow_insecure=allow_insecure,
+        trigger_push=trigger_push,
     )
 
 

@@ -1,11 +1,16 @@
 import os
 import time
+import json
 
 from uuid import uuid4
 from pathlib import Path
 
 import logme
 import delegator
+
+from .env import HEROKUISH_IMAGE, BUILD_TIMEOUT
+
+delegator.TIMEOUT = BUILD_TIMEOUT
 
 
 @logme.log
@@ -15,7 +20,6 @@ class Build:
         *,
         image_name,
         codepath,
-        do_push=False,
         allow_insecure=False,
         username=None,
         password=None,
@@ -25,7 +29,6 @@ class Build:
         self.uuid = uuid4().hex
         self.image_name = image_name
         self.codepath = Path(codepath)
-        self.do_push = do_push
         self.username = username
         self.password = password
         self.allow_insecure = allow_insecure
@@ -38,6 +41,21 @@ class Build:
 
         if trigger_push:
             self.push()
+
+    def docker(self, cmd, assert_ok=True, fail=True):
+        cmd = f"docker {cmd}"
+        self.logger.debug(f"$ {cmd}")
+        c = delegator.run(cmd)
+        try:
+            assert c.ok
+        except AssertionError as e:
+            self.logger.debug(c.out)
+            self.logger.debug(c.err)
+
+            if fail:
+                raise e
+
+        return c
 
     @property
     def requires_login(self):
@@ -54,7 +72,24 @@ class Build:
     def has_dockerfile(self):
         return os.path.isfile((self.codepath / "Dockerfile").resolve())
 
+    @property
+    def registry_specified(self):
+        if len(self.image_name.split("/")) > 1:
+            return self.image_name.split("/")[0]
+
     def ensure_docker(self):
+
+        if self.allow_insecure and self.registry_specified:
+            logger.debug("Configuring docker service to allow our insecure registry...")
+            # Configure our registry as insecure.
+            try:
+                with open("/etc/docker/daemon.json", "w") as f:
+                    data = {"insecure-registries": [self.registry_specified]}
+                    json.dump(data, f)
+            # This fails when running on Windows...
+            except FileNotFoundError:
+                pass
+
         # Start docker service.
         c = delegator.run("service docker start")
         time.sleep(0.3)
@@ -62,32 +97,35 @@ class Build:
         try:
             # Login to Docker.
             if self.requires_login:
-                c = delegator.run(f"docker login -u {self.username} -p {self.password}")
-                assert c.ok
-            c = delegator.run("docker ps")
+
+                self.docker(f"login -u {self.username} -p {self.password}")
+            c = self.docker("ps")
             assert c.ok
         except AssertionError:
             raise RuntimeError("Docker is not available.")
 
     def docker_build(self):
-        self.logger.info(f"Using Docker to build {self.uuid!r} of {self.name!r}.")
+        self.logger.info(f"Using Docker to build {self.uuid!r} of {self.image_name!r}.")
 
         self.ensure_docker()
 
-        c = delegator.run(
-            f"docker build {self.codepath} --tag {self.docker_tag}", block=False
-        )
-        for line in c.err:
-            print(line)
+        c = self.docker(f"build {self.codepath} --tag {self.docker_tag}", block=True)
         self.logger.debug(c.out)
         self.logger.debug(c.err)
         assert c.ok
 
     def buildpack_build(self):
         self.logger.info(f"Using buildpacks to build {self.uuid!r}.")
+        docker_cmd = (
+            f"run -i --name={self.uuid} -v {self.codepath}:/tmp/app"
+            f" {HEROKUISH_IMAGE} /bin/herokuish buildpack build"
+        )
+        c = self.docker(docker_cmd)
+        self.logger.debug(c.out)
+        self.logger.debug(c.err)
 
     def build(self):
-        self.logger.info(f"Starting build {self.uuid!r} of {self.name!r}.")
+        self.logger.info(f"Starting build {self.uuid!r} of {self.image_name!r}.")
         if self.has_dockerfile:
             self.docker_build()
         else:
@@ -99,7 +137,7 @@ class Build:
         assert self.was_built
         assert self.push
 
-        c = delegator.run(f"docker push {self.docker_tag}")
+        c = self.docker(f"push {self.docker_tag}")
         self.logger.debug(c.out)
         self.logger.debug(c.err)
         assert c.ok
