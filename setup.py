@@ -7,7 +7,6 @@
 import io
 import os
 import sys
-# from shutil import rmtree
 import shutil
 
 from setuptools import find_packages, setup, Command
