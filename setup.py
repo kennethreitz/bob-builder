@@ -7,7 +7,8 @@
 import io
 import os
 import sys
-from shutil import rmtree
+# from shutil import rmtree
+import shutil
 
 from setuptools import find_packages, setup, Command
 
@@ -36,6 +37,7 @@ EXTRAS = {
 # If you do change the License, remember to change the Trove Classifier for that!
 
 here = os.path.abspath(os.path.dirname(__file__))
+
 
 # Import the README and use it as the long-description.
 # Note: this will only work if 'README.md' is present in your MANIFEST.in file!
@@ -66,7 +68,7 @@ class UploadCommand(Command):
     def run(self):
         try:
             self.status("Removing previous builds…")
-            rmtree(os.path.join(here, "dist"))
+            shutil.rmtree(os.path.join(here, "dist"))
         except OSError:
             pass
 
@@ -83,6 +85,11 @@ class UploadCommand(Command):
         sys.exit()
 
 
+# Add logme.ini
+dest_file = os.path.join(here, "bob/logme.ini")
+shutil.copy(os.path.join(here, "logme.ini"), dest_file)
+
+
 # Where the magic happens:
 setup(
     name=NAME,
@@ -95,6 +102,9 @@ setup(
     python_requires=REQUIRES_PYTHON,
     url=URL,
     packages=find_packages(exclude=("tests",)),
+    package_data={
+        "": [dest_file]
+    },
     # If your package is a single module, use this instead of 'packages':
     # py_modules=['mypackage'],
     entry_points={"console_scripts": ["bob-builder=bob.__main__:main"]},
